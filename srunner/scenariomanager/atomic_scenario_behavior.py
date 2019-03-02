@@ -19,6 +19,7 @@ import py_trees
 
 from agents.navigation.roaming_agent import *
 from agents.navigation.basic_agent import *
+from agents.tools.misc import vector
 
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
@@ -36,6 +37,38 @@ def calculate_distance(location, other_location):
     """
     return location.distance(other_location)
 
+def get_intersection(ego_actor, other_actor):
+    """
+    Obtain a intersection point between two actor's location
+
+    @return point of intersection
+    """
+    waypoint = ego_actor.get_world().get_map().get_waypoint(ego_actor.get_location())
+    waypoint_other = other_actor.get_world().get_map().get_waypoint(other_actor.get_location())
+    max_dist = float("inf")
+    distance = float("inf")
+    while distance <= max_dist:
+        max_dist = distance
+        current_location = waypoint.transform.location
+        waypoint_choice = waypoint.next(1)
+        #   Select the straighter path at intersection
+        if len(waypoint_choice) > 1:
+            max_dot = -1*float('inf')
+            loc_projection = current_location + carla.Location(
+                x=math.cos(math.radians(waypoint.transform.rotation.yaw)),
+                y=math.sin(math.radians(waypoint.transform.rotation.yaw)))
+            v_current = vector(current_location, loc_projection)
+            for wp_select in waypoint_choice:
+                v_select = vector(current_location, wp_select.transform.location)
+                dot_select = np.dot(v_current, v_select)
+                if dot_select > max_dot:
+                    max_dot = dot_select
+                    waypoint = wp_select
+        else:
+            waypoint = waypoint_choice[0]
+        distance = current_location.distance(waypoint_other.transform.location)
+
+    return current_location
 
 class AtomicBehavior(py_trees.behaviour.Behaviour):
 
@@ -778,3 +811,53 @@ class Idle(AtomicBehavior):
         new_status = py_trees.common.Status.RUNNING
 
         return new_status
+
+class WaypointFollower(AtomicBehavior):
+    """
+    This is an atomic behaviour to follow waypoints indefinetly
+    while maintaining a given speed
+    """
+
+    def __init__(self, actor, target_speed, name="FollowWaypoints"):
+        """
+        Set up actor and local planner
+        """
+        super(WaypointFollower, self).__init__(name)
+        self._actor = actor
+        self._control = carla.VehicleControl()
+        self._target_speed = target_speed
+        self._local_planner = None
+
+    def initialise(self):
+        args_lateral_dict = {
+            'K_P': 0.8,
+            'K_D': 0.0,
+            'K_I': 0.0,
+            'dt': 1.0/20.0}
+        self._local_planner = LocalPlanner(
+            self._actor, opt_dict={
+                'target_speed' : self._target_speed,
+                'lateral_control_dict': args_lateral_dict})
+
+    def update(self):
+        """
+        Run local planner, obtain and apply control to actor
+        """
+
+        new_status = py_trees.common.Status.RUNNING
+        control = self._local_planner.run_step()
+        self._actor.apply_control(control)
+
+
+        return new_status
+
+    def terminate(self, new_status):
+        """
+        On termination of this behavior,
+        the throttle, brake and steer should be set back to 0.
+        """
+        self._control.throttle = 0.0
+        self._control.brake = 0.0
+        self._control.steer = 0.0
+        self._actor.apply_control(self._control)
+        super(WaypointFollower, self).terminate(new_status)
