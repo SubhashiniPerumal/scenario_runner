@@ -41,3 +41,4 @@
     - StopVehicle: stop vehicle
     - WaitForTrafficLightState: wait for the traffic light to have a given state
     - SyncArrival: sync the arrival of two vehicles to a given target
+    - WaypointFollower: follows the waypoints untill the given end condition
