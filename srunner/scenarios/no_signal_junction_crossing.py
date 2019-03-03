@@ -36,6 +36,8 @@ class NoSignalJunctionCrossing(BasicScenario):
 
     category = "NoSignalJunction"
 
+    timeout = 120
+
     # ego vehicle parameters
     _ego_vehicle_driven_distance = 105
 
@@ -85,8 +87,6 @@ class NoSignalJunctionCrossing(BasicScenario):
         end_condition = DriveDistance(self.ego_vehicle, 20)
 
         # Creating non-leaf nodes
-        root = py_trees.composites.Parallel(
-            policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
         scenario_sequence = py_trees.composites.Sequence()
         sync_arrival_parallel = py_trees.composites.Parallel(
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
@@ -94,7 +94,6 @@ class NoSignalJunctionCrossing(BasicScenario):
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE)
 
         # Building tree
-        root.add_child(scenario_sequence)
         scenario_sequence.add_child(start_condition)
         scenario_sequence.add_child(sync_arrival_parallel)
         scenario_sequence.add_child(keep_velocity_other_parallel)
@@ -105,7 +104,7 @@ class NoSignalJunctionCrossing(BasicScenario):
         keep_velocity_other_parallel.add_child(keep_velocity_other)
         keep_velocity_other_parallel.add_child(stop_other_trigger)
 
-        return root
+        return scenario_sequence
 
     def _create_test_criteria(self):
         """
