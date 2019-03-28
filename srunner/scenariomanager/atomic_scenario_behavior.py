@@ -19,6 +19,7 @@ from py_trees.blackboard import Blackboard
 
 from agents.navigation.roaming_agent import *
 from agents.navigation.basic_agent import *
+from py_trees.blackboard import Blackboard
 
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.carla_data_provider import CarlaActorPool
