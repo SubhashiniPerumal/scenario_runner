@@ -38,13 +38,9 @@ class SignalizedJunctionLeftTurn(BasicScenario):
 
         self._world = world
         self.category = "SignalizedJunctionLeftTurn"
-        self.timeout = 80  # Timeout of scenario in seconds
+        self.timeout = 60  # Timeout of scenario in seconds
         self._target_vel = 35
-        self._brake_value = 0.5
-        self._drive_distance = 50
-        self._ego_distance = 20
-        self._dist_to_intersection = 12
-        self._start_distance = 3
+        self._drive_distance = 200
         self._traffic_light = None
         self._other_actor_transform = None
         self._sink_location = None
@@ -121,9 +117,12 @@ class SignalizedJunctionLeftTurn(BasicScenario):
 
         actor_sink = ActorSink(self._world, self._sink_location, 10)
 
+        drive_distance = DriveDistance(self.ego_vehicle, self._drive_distance)
+
         root.add_child(actor_source)
         root.add_child(waypoint_follower)
         root.add_child(actor_sink)
+        root.add_child(drive_distance)
 
         return root
 
